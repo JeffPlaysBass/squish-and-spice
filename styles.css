@@ -14,3 +14,6 @@
 .header-inner{flex-wrap:wrap}nav{margin-left:auto;flex-wrap:wrap}.cash-name{font-size:.75rem}.cash-detail{display:none}.mode-card{transition:transform .16s,box-shadow .16s}
 @media(max-width:480px){.icon-button{width:44px;min-height:44px}.cash-name{font-size:.72rem}.coin-10 .cash-name{font-size:.7rem}.bill .cash-name{font-size:.75rem}.table-choice small{font-size:.65rem}.table-choices{grid-template-columns:repeat(5,minmax(0,1fr))}}
 @media(max-width:359px){.table-choices{grid-template-columns:repeat(3,minmax(0,1fr))}.table-choice small{font-size:.75rem}}
+
+/* v2: make the perfect-score goal clear without slowing down play. */
+.perfect-track{font-size:.83rem;color:#635c76;margin:0 0 15px;line-height:1.5}.reward-rule{padding:10px 13px;border-radius:11px;background:#f0e6ff;color:#504264}.result-stats strong{font-variant-numeric:tabular-nums}
