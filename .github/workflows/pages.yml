@@ -31,6 +31,7 @@ jobs:
         run: |
           mkdir -p public-site
           cp index.html styles.css math.js app.js favicon.svg .nojekyll public-site/
+          cp -R assets public-site/
       - name: Upload game
         uses: actions/upload-pages-artifact@v3
         with:

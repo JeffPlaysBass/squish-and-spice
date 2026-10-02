@@ -5,6 +5,10 @@ const M=window.SquishMath;
 if(!M)throw new Error("The math engine did not load.");
 const app=document.getElementById("app");
 const STORAGE_KEY="squish-and-spice-v1";
+const MONEY_STYLE_KEY="squish-and-spice-money-style";
+const MONEY_ART={1:"penny.svg",5:"nickel.svg",10:"dime.svg",25:"quarter.svg",100:"one-dollar.svg",500:"five-dollars.svg",1000:"ten-dollars.svg",2000:"twenty-dollars.svg"};
+let savedMoneyStyle="tokens";
+try{if(localStorage.getItem(MONEY_STYLE_KEY)==="drawings")savedMoneyStyle="drawings"}catch{}
 const BUDDIES=[
  {name:"Lime Wiggle",color:"#b9ef4c",accent:"#7cbe31",accessory:"🍋"},
  {name:"Berry Bounce",color:"#fb89c6",accent:"#df4294",accessory:"🍓"},
@@ -26,7 +30,7 @@ const MODES={
 };
 let storageOK=true,progress=M.emptyProgress();
 try{progress=M.sanitizeProgress(JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}"))}catch{storageOK=false}
-const state={screen:"home",mode:"fractions",config:{op:"+",level:"simple",table:1,cash:"coins",duration:0,input:"choices"},game:null,result:null,sound:false,shelfOwner:"Delilah",helpFrom:"home"};
+const state={screen:"home",mode:"fractions",config:{op:"+",level:"simple",table:1,cash:"coins",duration:0,input:"choices"},game:null,result:null,sound:false,moneyStyle:savedMoneyStyle,shelfOwner:"Delilah",helpFrom:"home"};
 let audio;
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const btn=(html,action,attrs="",cls="")=>'<button type="button" class="'+cls+'" data-action="'+action+'" '+attrs+'>'+html+'</button>';
@@ -51,6 +55,13 @@ function sound(kind="happy"){
 function choices(items,key){
  return '<div class="choices">'+items.map(([v,t])=>btn(t,"config",'data-key="'+key+'" data-value="'+v+'" aria-pressed="'+(String(state.config[key])===String(v))+'"',"choice "+(String(state.config[key])===String(v)?"selected":""))).join("")+'</div>';
 }
+function moneyStylePicker(compact=false){
+ const styles=[["tokens","Learning tokens","Big, clear values"],["drawings","Money drawings","Familiar faces & designs"]];
+ return '<div class="money-style-options '+(compact?"compact":"with-previews")+'" role="group" aria-label="Money appearance">'+styles.map(([id,title,detail])=>{
+  const preview=id==="tokens"?'<span class="preview-token-coin">25¢</span><span class="preview-token-bill">$5</span>':'<img class="preview-drawn-coin" src="./assets/money/quarter.svg" alt="" width="66" height="67" draggable="false"><img class="preview-drawn-bill" src="./assets/money/five-dollars.svg" alt="" width="132" height="57" draggable="false">';
+  return btn((compact?"":'<span class="money-style-preview" aria-hidden="true">'+preview+'</span>')+'<strong>'+title+'</strong>'+(compact?"":'<span class="money-style-description">'+detail+'</span>'),"money-style",'data-style="'+id+'" aria-pressed="'+(state.moneyStyle===id)+'"',"money-style-choice "+(state.moneyStyle===id?"selected":""));
+ }).join("")+'</div>';
+}
 function home(){
  return '<section class="welcome"><div class="welcome-copy"><div class="eyebrow"><span class="little-star">✦</span> DELILAH & ESTHER’S MATH CLUB</div><h1>Small math.<br><span>BIG squish.</span></h1><p>Pick an adventure. Grow your brain.<br>Meet your next squishy sidekick.</p><div class="welcome-notes"><span>✦ No timer? No problem.</span><span>✦ Hints always welcome.</span></div></div><div class="welcome-buddy">'+btn(mascot(BUDDIES[0],99),"squish",'aria-label="Give Lime Wiggle a squish"',"squish-button hero-squish")+'<div class="speech-bubble" id="squish-message">Psst. Tap me!</div><span class="sparkle one" aria-hidden="true">✳</span><span class="sparkle two" aria-hidden="true">✦</span></div></section><section aria-labelledby="adventure-title"><div class="section-heading"><h2 id="adventure-title">Choose your adventure</h2><span class="tiny-note">Three ways to play</span></div><div class="mode-grid">'+Object.entries(MODES).map(([id,m])=>'<article class="mode-card '+m.color+'"><div class="card-top"><span class="zone">'+m.owner+'’s zone</span><span class="card-icon" aria-hidden="true">'+m.icon+'</span></div><div class="mode-label">'+m.label+'</div><h3>'+m.title+'</h3><p>'+m.description+'</p>'+btn('Let’s play <span aria-hidden="true">✦</span>',"mode",'data-mode="'+id+'"',"primary play-button")+'</article>').join("")+'</div></section><section class="shelf-banner"><div class="shelf-preview" aria-hidden="true">🍋 🌶️ 🦄</div><div><h2>A whole crew to collect</h2><p>Get all 10 right on your first try to meet a new squishy.</p></div>'+btn("Visit your squishy shelf","shelf","","secondary")+'</section><p class="save-note">Your progress stays in this browser on this device. No accounts. No ads.</p>';
 }
@@ -59,7 +70,7 @@ function setup(){
  let settings="";
  if(state.mode==="fractions")settings='<fieldset><legend><span>1</span> Pick your math power</legend>'+choices([["+","＋ Add"],["−","− Subtract"],["×","× Multiply"],["÷","÷ Divide"],["mix","🌶️ Mix all four"]],"op")+'</fieldset><fieldset><legend><span>2</span> Choose your ingredients</legend>'+choices([["simple","Simple fractions"],["mixed","Mixed numbers"]],"level")+'<p class="tip">'+(c.level==="simple"?"Start with fractions like ½ and ¾, including puzzles like ½ + ? = ¾.":"Practice numbers like 1½ and 2⅓, with the missing number on either side of the equals sign.")+'</p></fieldset>';
  if(state.mode==="times")settings='<fieldset><legend><span>1</span> Which number are we popping?</legend><div class="table-choices">'+Array.from({length:10},(_,i)=>{const n=i+1;return btn('<strong>'+n+'s</strong><small>'+((progress.tables[n]||0)===10?"★ All 10 solved":(progress.tables[n]||0)+"/10 best")+'</small>',"config",'data-key="table" data-value="'+n+'" aria-pressed="'+(c.table===n)+'"',"table-choice "+(c.table===n?"selected":""))}).join("")+'</div><p class="tip">A round covers ×1 to ×10 in a fresh order. In timed play, finish all ten before the clock runs out!</p></fieldset>';
- if(state.mode==="money")settings='<fieldset><legend><span>1</span> What’s in your pocket?</legend>'+choices([["coins","🪙 Coins"],["bills","💵 Bills"],["mixed","🛍️ Coins + bills"]],"cash")+'<p class="tip">Pennies, nickels, dimes, quarters, and $1, $5, $10 and $20 bills.</p>'+btn("Meet the money","money-guide","","text-button")+'</fieldset>';
+ if(state.mode==="money")settings='<fieldset><legend><span>1</span> What’s in your pocket?</legend>'+choices([["coins","🪙 Coins"],["bills","💵 Bills"],["mixed","🛍️ Coins + bills"]],"cash")+'<p class="tip">Pennies, nickels, dimes, quarters, and $1, $5, $10 and $20 bills.</p></fieldset><fieldset><legend><span>2</span> Choose your money look</legend>'+moneyStylePicker()+'<p class="tip">Both styles use the same values. You can switch while you play.</p>'+btn("Meet the money","money-guide","","text-button")+'</fieldset>';
  return '<section class="paper setup"><div class="eyebrow">'+m.owner.toUpperCase()+'’S ZONE</div><h1 class="page-title"><span aria-hidden="true">'+m.icon+'</span> '+m.title+'</h1>'+settings+'<fieldset><legend><span>⚡</span> Find your pace</legend>'+choices([[0,"☁ No timer"],[60,"60-second dash"],[120,"2-minute dash"]],"duration")+'<p class="tip">'+(c.duration?"Beat the clock across 10 questions. Correct answers jump straight to the next question.":"Take your time: 10 different questions, with room to learn.")+'</p><p class="tip reward-rule">🧸 A perfect 10 means every answer right on the first try. Hints are welcome!</p></fieldset><fieldset><legend><span>✎</span> How will you answer?</legend>'+choices([["choices","Tap a choice"],["type","Build / type it"]],"input")+'</fieldset><div class="setup-bottom"><div class="best-pill">'+(c.duration?"🏆 Your best: "+(progress.best[M.bestKey(state.mode,c)]||0)+" solved":"⭐ Every solved answer earns a star")+'</div>'+btn("Let’s do this!","start","","primary")+'</div></section>';
 }
 function fractionBars(r,label){
@@ -75,12 +86,19 @@ function hintPanel(q){
 }
 function cashToken(v,i,interactive=true){
  const c=M.CASH.find(x=>x.value===v),counted=interactive&&state.game.counted.includes(i);
+ if(state.moneyStyle==="drawings"){
+  const image='<img class="money-art" src="./assets/money/'+MONEY_ART[v]+'" alt="" width="'+(c.type==="coin"?240:426)+'" height="'+(c.type==="coin"?244:184)+'" draggable="false">';
+  const caption='<span class="money-drawing-label"><strong>'+c.name+'</strong><span>'+(c.type==="coin"?v+"¢":c.detail)+'</span></span>';
+  const html='<span class="money-drawing-picture">'+image+'</span>'+caption+(counted?'<span class="count-check" aria-hidden="true">✓</span>':"");
+  const cls="money-drawing money-drawing-"+c.type+" money-value-"+v+(counted?" counted":"");
+  return interactive?btn(html,"count",'data-index="'+i+'" aria-pressed="'+counted+'" aria-label="'+c.name+', '+(v>=100?M.money(v):v+" cents")+'"',cls):'<div class="'+cls+'">'+html+'</div>';
+ }
  const html='<span class="cash-value">'+(v>=100?"$"+v/100:v+"¢")+'</span><span class="cash-name">'+c.name+'</span><span class="cash-detail">'+c.detail+'</span>'+(counted?'<span class="count-check" aria-hidden="true">✓</span>':"");
  const cls="cash-token "+(c.type==="bill"?"bill":"coin coin-"+v)+(counted?" counted":"");
  return interactive?btn(html,"count",'data-index="'+i+'" aria-pressed="'+counted+'" aria-label="'+c.name+', '+(v>=100?M.money(v):v+" cents")+'"',cls):'<div class="'+cls+'">'+html+'</div>';
 }
 function question(q){
- if(state.mode==="money")return '<div class="question-caption">SNACK SHOP CHECKOUT</div><h2 class="cash-question">How much is here?</h2><div class="cash-tray">'+q.pieces.map((v,i)=>cashToken(v,i)).join("")+'</div><p class="tip cash-tip">Tap each piece to mark it as counted.<br>These are learning tokens for real US money.</p>';
+ if(state.mode==="money")return '<div class="question-caption">SNACK SHOP CHECKOUT</div><h2 class="cash-question">What is the total value?</h2><div class="money-style-inline"><span>Money look</span>'+moneyStylePicker(true)+'</div><div class="cash-tray">'+q.pieces.map((v,i)=>cashToken(v,i)).join("")+'</div><p class="tip cash-tip">Add all the money. Answer in dollars and cents.<br>Tap pieces to keep track as you add.<br>'+(state.moneyStyle==="drawings"?"Real-money designs, drawn for our game.":"Learning tokens with easy-to-read values.")+'</p>';
  if(state.mode==="times")return '<div class="question-caption">POP THE MISSING NUMBER</div><h2 class="equation" aria-label="'+q.a+' times '+q.b+' equals what?">'+q.a+'<span class="operator" aria-hidden="true">×</span>'+q.b+'<span class="operator" aria-hidden="true">=</span><span class="mystery" aria-hidden="true">?</span></h2>';
  const mystery='<span class="mystery" aria-label="missing number">?</span>';
  return '<div class="question-caption">'+(q.blank==="result"?"A LITTLE SPICE FOR YOUR BRAIN":"FIND THE MISSING NUMBER")+'</div><h2 class="equation">'+(q.blank==="a"?mystery:fraction(q.a))+'<span class="operator">'+q.op+'</span>'+(q.blank==="b"?mystery:fraction(q.b))+'<span class="operator">=</span>'+(q.blank==="result"?mystery:fraction(q.result))+'</h2>';
@@ -88,7 +106,7 @@ function question(q){
 function answerForm(g){
  const disabled=g.done?"disabled":"",d=g.draft;
  if(state.mode==="fractions")return '<form class="answer-form" id="answer-form" novalidate><div class="form-caption">Build your answer</div><div class="fraction-builder"><label>Whole<span class="optional">optional</span><input name="whole" data-draft="whole" aria-label="Whole number, optional" inputmode="numeric" autocomplete="off" maxlength="3" placeholder="0" value="'+esc(d.whole||"")+'" '+disabled+'></label><div class="builder-fraction"><label><span>Top number</span><input name="top" data-draft="top" aria-label="Fraction numerator, top number" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="top" value="'+esc(d.top||"")+'" '+disabled+'></label><label><span>Bottom number</span><input name="bottom" data-draft="bottom" aria-label="Fraction denominator, bottom number" inputmode="numeric" autocomplete="off" maxlength="3" placeholder="bottom" value="'+esc(d.bottom||"")+'" '+disabled+'></label></div><button class="primary" type="submit" '+disabled+'>Check it</button></div><p class="tip">A whole-number answer can leave top and bottom blank. Equivalent fractions count too!</p></form>';
- return '<form class="answer-form" id="answer-form" novalidate><label for="answer-input">'+(state.mode==="money"?"Your total in dollars and cents":"Your answer")+'</label><div class="input-row">'+(state.mode==="money"?'<span class="dollar-prefix" aria-hidden="true">$</span>':"")+'<input id="answer-input" name="answer" data-draft="answer" inputmode="'+(state.mode==="money"?"decimal":"numeric")+'" autocomplete="off" maxlength="12" placeholder="'+(state.mode==="money"?"1.25":"?")+'" value="'+esc(d.answer||"")+'" '+disabled+'><button class="primary" type="submit" '+disabled+'>Check it</button></div>'+(state.mode==="money"?'<p class="tip">For 75 cents, type 0.75. For two dollars, type 2.00.</p>':"")+'</form>';
+ return '<form class="answer-form" id="answer-form" novalidate><label for="answer-input">'+(state.mode==="money"?"Total value in dollars and cents":"Your answer")+'</label><div class="input-row">'+(state.mode==="money"?'<span class="dollar-prefix" aria-hidden="true">$</span>':"")+'<input id="answer-input" name="answer" data-draft="answer" inputmode="'+(state.mode==="money"?"decimal":"numeric")+'" autocomplete="off" maxlength="12" placeholder="'+(state.mode==="money"?"1.25":"?")+'" value="'+esc(d.answer||"")+'" '+disabled+'><button class="primary" type="submit" '+disabled+'>Check it</button></div>'+(state.mode==="money"?'<p class="tip">For 75 cents, type 0.75. For two dollars, type 2.00.</p>':"")+'</form>';
 }
 function formatTime(ms){const n=Math.max(0,Math.ceil(ms/1000));return Math.floor(n/60)+":"+String(n%60).padStart(2,"0")}
 function game(){
@@ -111,7 +129,7 @@ function shelf(){
 }
 function guide(){
  const money=state.screen==="money-guide";
- return '<section class="paper guide"><div class="eyebrow">'+(money?"POCKET-SIZED KNOW-HOW":"WELCOME TO THE CLUB")+'</div><h1>'+(money?"Meet the money":"A little help to get rolling")+'</h1>'+(money?'<p>These learning tokens show common US money. Look for the value and name on each one.</p><div class="money-reference">'+M.CASH.map(c=>'<div>'+cashToken(c.value,0,false)+'<p><strong>'+c.name+'</strong><br>'+c.value+' cent'+(c.value===1?"":"s")+'</p></div>').join("")+'</div><div class="hint-panel"><h2>Count biggest to smallest</h2><p>Start with bills, then quarters, dimes, nickels and pennies.</p><p>4 quarters = $1 · 10 dimes = $1 · 20 nickels = $1<br>100 pennies = $1 · 100 cents = $1</p></div>':'<div class="how-grid"><article><span>1</span><h2>Pick your adventure</h2><p>Delilah’s fractions cover all four operations. Esther can choose a times table from 1s to 10s, or practice US money.</p></article><article><span>2</span><h2>Find your pace</h2><p>Every round has 10 different questions. Timed rounds end after ten questions or when the clock runs out, and move on automatically after a correct answer. Pause anytime.</p></article><article><span>3</span><h2>Try. Learn. Squish.</h2><p>Hints are always welcome. “Show me how” explains an answer so you can learn and move on. Solve answers to earn stars. Get all 10 right on your first attempts to earn a squishy; hints are allowed. In timed play, finish all ten before the clock runs out. Each perfect round earns one squishy.</p></article></div><div class="hint-panel"><h2>Good to know</h2><p>You can always try again and earn stars. A wrong answer or “Show me how” means that round cannot earn a squishy. Equivalent fractions count, including improper fractions. Money answers use dollars and cents, like 1.25.</p><p>Personal bests are separate for each game, difficulty, timer, and answer style. Progress stays in this browser on this device; it does not sync between devices.</p><p>The timer pauses when you leave the tab. Use “Finish & save stars” before closing the game to save your current round.</p></div>')+btn("Back to "+(money?"Snack Shop":"playing"),"back-help","","primary")+'</section>';
+ return '<section class="paper guide"><div class="eyebrow">'+(money?"POCKET-SIZED KNOW-HOW":"WELCOME TO THE CLUB")+'</div><h1>'+(money?"Meet the money":"A little help to get rolling")+'</h1>'+(money?'<p>Choose learning tokens or drawings of familiar US coins and bills. Match each piece to its name and value.</p>'+moneyStylePicker()+'<div class="money-reference '+(state.moneyStyle==="drawings"?"illustrated-reference":"")+'">'+M.CASH.map(c=>'<div>'+cashToken(c.value,0,false)+'<p><strong>'+c.name+'</strong><br>'+c.value+' cent'+(c.value===1?"":"s")+'</p></div>').join("")+'</div><div class="hint-panel"><h2>Count biggest to smallest</h2><p>Start with bills, then quarters, dimes, nickels and pennies.</p><p>4 quarters = $1 · 10 dimes = $1 · 20 nickels = $1<br>100 pennies = $1 · 100 cents = $1</p></div>':'<div class="how-grid"><article><span>1</span><h2>Pick your adventure</h2><p>Delilah’s fractions cover all four operations. Esther can choose a times table from 1s to 10s, or practice US money.</p></article><article><span>2</span><h2>Find your pace</h2><p>Every round has 10 different questions. Timed rounds end after ten questions or when the clock runs out, and move on automatically after a correct answer. Pause anytime.</p></article><article><span>3</span><h2>Try. Learn. Squish.</h2><p>Hints are always welcome. “Show me how” explains an answer so you can learn and move on. Solve answers to earn stars. Get all 10 right on your first attempts to earn a squishy; hints are allowed. In timed play, finish all ten before the clock runs out. Each perfect round earns one squishy.</p></article></div><div class="hint-panel"><h2>Good to know</h2><p>You can always try again and earn stars. A wrong answer or “Show me how” means that round cannot earn a squishy. Equivalent fractions count, including improper fractions. Money answers use dollars and cents, like 1.25.</p><p>Personal bests are separate for each game, difficulty, timer, and answer style. Progress stays in this browser on this device; it does not sync between devices.</p><p>The timer pauses when you leave the tab. Use “Finish & save stars” before closing the game to save your current round.</p></div>')+btn("Back to "+(money?"Snack Shop":"playing"),"back-help","","primary")+'</section>';
 }
 function render(focus=false){
  const isGame=state.screen==="game"||state.screen==="pause";
@@ -173,6 +191,14 @@ function handle(action,data={},target){
  }
  if(action==="mode"){if(!MODES[data.mode])return;state.mode=data.mode;state.screen="setup";render(true);return}
  if(action==="setup"){state.screen="setup";render(true);return}
+ if(action==="money-style"){
+  if(!["tokens","drawings"].includes(data.style))return;
+  state.moneyStyle=data.style;
+  try{localStorage.setItem(MONEY_STYLE_KEY,state.moneyStyle)}catch{}
+  render();
+  document.querySelector('[data-action="money-style"][data-style="'+state.moneyStyle+'"]')?.focus({preventScroll:true});
+  return;
+ }
  if(action==="config"){
   const allowed={op:["+","−","×","÷","mix"],level:["simple","mixed"],table:[1,2,3,4,5,6,7,8,9,10],cash:["coins","bills","mixed"],duration:[0,60,120],input:["choices","type"]};
   const k=data.key,v=k==="table"||k==="duration"?Number(data.value):data.value;

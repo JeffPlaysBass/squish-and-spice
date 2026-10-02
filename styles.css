@@ -17,3 +17,35 @@
 
 /* v2: make the perfect-score goal clear without slowing down play. */
 .perfect-track{font-size:.83rem;color:#635c76;margin:0 0 15px;line-height:1.5}.reward-rule{padding:10px 13px;border-radius:11px;background:#f0e6ff;color:#504264}.result-stats strong{font-variant-numeric:tabular-nums}
+
+/* v3: original illustrated money, with the learning-token option preserved. */
+.money-style-options{display:flex;gap:12px;flex-wrap:wrap}
+.money-style-choice{position:relative;border:2px solid #ccc3dc;background:white;padding:15px 18px;min-height:50px;font-size:.95rem;line-height:1.3;flex:1;min-width:0;text-align:left}
+.money-style-choice strong{display:block}.money-style-description{display:block;font-size:.8rem;color:#655977;margin-top:5px}
+.money-style-choice.selected{border-color:var(--ink);background:#f2eaff;box-shadow:0 3px 0 var(--ink)}
+.money-style-choice:hover{border-color:var(--purple)}
+.money-style-preview{height:92px;display:flex;align-items:center;justify-content:center;gap:11px;margin-bottom:10px;pointer-events:none}
+.preview-token-coin{display:grid;place-items:center;width:58px;height:58px;border:3px solid #8a8a99;border-radius:50%;background:radial-gradient(circle at 35% 25%,#fff,#dce0e9 55%,#b8bcc8);box-shadow:0 3px 0 #8b8b9b;font-weight:900;font-size:1.15rem}
+.preview-token-bill{display:grid;place-items:center;width:104px;height:48px;border:3px double #50734c;background:#d3eac8;box-shadow:0 3px 0 #6c8c67;font-size:1.4rem;font-weight:900;border-radius:5px;color:#344d30}
+.preview-drawn-coin{width:66px;height:auto;flex-shrink:0}.preview-drawn-bill{width:132px;max-width:58%;height:auto}
+.money-style-inline{display:flex;align-items:center;justify-content:center;gap:12px;margin:0 0 18px;flex-wrap:wrap}
+.money-style-inline>span{font-size:.8rem;font-weight:800;color:var(--muted)}
+.money-style-options.compact{gap:8px;justify-content:center}
+.compact .money-style-choice{flex:initial;font-size:.78rem;padding:9px 12px;min-height:44px;text-align:center;border-radius:99px}
+.money-drawing{--coin-size:96px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;position:relative;padding:8px 6px;background:transparent;border:2px solid transparent;border-radius:16px;box-shadow:none;line-height:1.2;min-width:0;max-width:100%;user-select:none}
+.money-drawing-picture{display:block;pointer-events:none}
+.money-art{display:block;width:100%;height:auto;pointer-events:none}
+.money-drawing-coin{width:calc(var(--coin-size) + 16px)}
+.money-drawing-coin .money-drawing-picture{width:var(--coin-size);max-width:100%}
+.money-value-1{--coin-size:89px}.money-value-5{--coin-size:99px}.money-value-10{--coin-size:83px}.money-value-25{--coin-size:111px}
+.money-drawing-bill{width:194px}.money-drawing-bill .money-drawing-picture{width:178px;max-width:100%}
+.money-drawing-label{display:flex;flex-direction:column;gap:3px;font-size:.8rem;text-align:center;pointer-events:none;max-width:100%}
+.money-drawing-label strong{font-weight:900}.money-drawing-label>span{font-size:.78rem;color:#62566f}
+button.money-drawing:hover{background:#fff9}.money-drawing.counted{background:#e8dcff;filter:none}
+.money-drawing.counted .count-check{right:2px;top:0}
+.money-reference{margin-top:23px}.money-reference>div{min-width:0}
+.illustrated-reference .money-drawing{max-width:100%}.illustrated-reference .money-drawing-label{display:none}
+.illustrated-reference>div{justify-content:flex-end}
+@media(max-width:740px){.money-style-choice{padding:13px}.money-style-preview{gap:8px}.preview-drawn-coin{width:60px}.preview-drawn-bill{width:120px}.money-drawing-bill{width:180px}.money-drawing-bill .money-drawing-picture{width:164px}}
+@media(max-width:480px){.money-style-options{gap:10px}.money-style-choice{padding:13px 10px;font-size:.85rem}.money-style-description{font-size:.75rem}.money-style-preview{height:94px;position:relative;display:block;margin-bottom:12px}.money-style-preview>*{position:absolute;pointer-events:none}.preview-token-coin{width:49px;height:49px;font-size:1rem;left:3px;top:0;z-index:1}.preview-token-bill{width:90px;height:43px;font-size:1.15rem;right:0;bottom:0}.preview-drawn-coin{width:58px;left:0;top:0;z-index:1}.preview-drawn-bill{width:117px;max-width:100%;right:0;bottom:0}.money-style-inline{gap:8px;margin-bottom:16px}.compact .money-style-choice{font-size:.75rem;padding:9px 12px;min-height:44px}.money-drawing{padding:6px 4px;gap:5px}.money-value-1{--coin-size:78px}.money-value-5{--coin-size:87px}.money-value-10{--coin-size:73px}.money-value-25{--coin-size:98px}.money-drawing-coin{width:calc(var(--coin-size) + 12px)}.money-drawing-bill{width:154px}.money-drawing-bill .money-drawing-picture{width:142px}.money-drawing-label{font-size:.78rem}.money-drawing-label>span{font-size:.75rem}}
+@media(prefers-reduced-motion:reduce){.money-style-choice,.money-drawing{transition:none}}

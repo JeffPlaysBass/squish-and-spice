@@ -245,4 +245,85 @@ click("next");check(captured.index===savedIndex+1,"worked-help can continue");
 captured.deadline=testNow-1;timers[0]();
 check(captured.finished&&!node.innerHTML.includes("NEW SQUISHY UNLOCKED!"),"expired partial round has no reward");
 
+
+// Money answers are the total value of every piece, expressed in dollars and cents.
+const totalQuestion=M.moneyQuestion("mixed",[100,25,10]);
+eq(totalQuestion.answer,M.rational(135),"one dollar, one quarter and one dime total $1.35");
+check(totalQuestion.options.some(a=>M.money(a.n)==="$1.35"),"choice answers include the entire pile's value");
+const totalRound=M.startRound("money",{...c,duration:0},testNow);
+totalRound.questions[0]=totalQuestion;
+check(M.answerRound(totalRound,M.parseAnswer("3","money"),null,testNow)==="incorrect","number of pieces is not the monetary answer");
+check(M.answerRound(totalRound,M.parseAnswer("1.35","money"),null,testNow)==="correct","dollar-and-cent total is the correct answer");
+
+// v3: both money appearances share the same question and counting state.
+click("home");click("mode",{mode:"money"});
+check(node.innerHTML.includes("Choose your money look"),"money setup offers appearance selection");
+check(node.innerHTML.includes('data-style="tokens" aria-pressed="true"'),"original tokens remain the default");
+click("money-style",{style:"drawings"});
+check(node.innerHTML.includes('data-style="drawings" aria-pressed="true"'),"drawing selection is accessible");
+check(store["squish-and-spice-money-style"]==="drawings","appearance saved separately from progress");
+click("money-guide");
+check(node.innerHTML.includes("illustrated-reference"),"money guide follows selected appearance");
+const drawnGuide=node.innerHTML;
+const assetNames=["penny.svg","nickel.svg","dime.svg","quarter.svg","one-dollar.svg","five-dollars.svg","ten-dollars.svg","twenty-dollars.svg"];
+for(const file of assetNames){
+ check(drawnGuide.includes("./assets/money/"+file),"guide displays "+file);
+ const art=fs.readFileSync(path.join(root,"assets","money",file),"utf8");
+ check(art.startsWith('<svg xmlns="http://www.w3.org/2000/svg"')&&art.endsWith("</svg>"),"packaged SVG exists: "+file);
+ check(!/<(?:image|script|foreignObject)\b/i.test(art)&&!/\b(?:href|src)="(?:https?:|data:)/i.test(art),"art is self-contained vector drawing: "+file);
+}
+click("money-style",{style:"tokens"});
+check(!node.innerHTML.includes('class="money-art"')&&node.innerHTML.includes("cash-token"),"guide can return to original tokens");
+click("back-help");
+click("config",{key:"cash",value:"mixed"});click("config",{key:"duration",value:"60"});click("config",{key:"input",value:"type"});click("start");
+captured.questions[0].pieces=M.CASH.map(c=>c.value);
+captured.questions[0].answer=M.rational(captured.questions[0].pieces.reduce((a,b)=>a+b,0));
+click("count",{index:"0"});click("count",{index:"3"});click("hint");
+listeners.input({target:{dataset:{draft:"answer"},value:"12.34"}});
+const beforeStyle=JSON.stringify(captured),beforeProfile=store["squish-and-spice-v1"],sameGame=captured;
+click("money-style",{style:"drawings"});
+check(captured===sameGame&&JSON.stringify(captured)===beforeStyle,"switch preserves question, counters, draft, hints, score and deadline");
+check(store["squish-and-spice-v1"]===beforeProfile,"style switch does not alter saved progress");
+check(node.innerHTML.includes("What is the total value?"),"money question explicitly asks for total value");
+check(node.innerHTML.includes('value="12.34"'),"entered money answer survives appearance switch");
+check(node.innerHTML.includes("Counted so far")&&node.innerHTML.includes("$0.26"),"counting aid survives appearance switch");
+check((node.innerHTML.match(/class="count-check"/g)||[]).length===2,"counted pieces stay marked in drawings");
+for(const file of assetNames)check(node.innerHTML.includes("./assets/money/"+file),"play renders correct drawing: "+file);
+click("count",{index:"3"});
+check(captured.counted.length===1&&captured.counted[0]===0,"drawn coins remain tappable to uncount");
+click("count",{index:"7"});
+check(captured.counted.includes(7),"drawn bills remain tappable to count");
+const beforeTokens=JSON.stringify(captured);
+click("money-style",{style:"tokens"});
+check(JSON.stringify(captured)===beforeTokens&&node.innerHTML.includes("cash-token"),"switching back retains the same round");
+check((node.innerHTML.match(/class="count-check"/g)||[]).length===2,"counted pieces stay marked in original tokens");
+click("money-style",{style:"bad-value"});
+check(store["squish-and-spice-money-style"]==="tokens","invalid style is ignored");
+click("money-style",{style:"drawings"});
+listeners.input({target:{dataset:{draft:"answer"},value:M.money(captured.questions[0].answer.n).replace("$","")}});
+listeners.submit({target:{id:"answer-form"},preventDefault(){}});
+check(captured.solved===1&&captured.index===1,"drawn money uses the same exact arithmetic and timed progression");
+check(node.innerHTML.includes('data-style="drawings" aria-pressed="true"'),"style remains selected on next question");
+captured.deadline=testNow-1;timers[0]();
+check(captured.finished&&node.innerHTML.includes("Time’s up, superstar!"),"timer still expires correctly in drawing mode");
+
+function freshMoneyUI(storage){
+ const freshListeners={};
+ const freshNode={...node,innerHTML:"",addEventListener:(type,fn)=>freshListeners[type]=fn};
+ const freshDocument={...document,getElementById:()=>freshNode,querySelector:()=>freshNode};
+ vm.runInContext(ui,vm.createContext({window:win,document:freshDocument,localStorage:storage,setInterval(){},Date:testDate,console}));
+ return {
+  html:()=>freshNode.innerHTML,
+  click:(action,data={})=>freshListeners.click({target:{closest:()=>({...freshNode,dataset:{action,...data},disabled:false})}})
+ };
+}
+let fresh=freshMoneyUI(localStorage);fresh.click("mode",{mode:"money"});
+check(fresh.html().includes('data-style="drawings" aria-pressed="true"'),"saved choice is restored on reload");
+store["squish-and-spice-money-style"]="unknown";
+fresh=freshMoneyUI(localStorage);fresh.click("mode",{mode:"money"});
+check(fresh.html().includes('data-style="tokens" aria-pressed="true"'),"unknown saved appearance falls back to tokens");
+fresh=freshMoneyUI({getItem(){throw Error("storage blocked")},setItem(){throw Error("storage blocked")}});
+fresh.click("mode",{mode:"money"});fresh.click("money-style",{style:"drawings"});fresh.click("start");
+check(fresh.html().includes('class="money-art"'),"drawings remain usable when browser storage is blocked");
+
 console.log("PASS: "+checks+" math, answer, state, persistence, timer and interface smoke checks. Browser play-testing is separate.");
