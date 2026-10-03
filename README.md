@@ -6,7 +6,7 @@ The GitHub Pages address, once deployment is enabled, is:
 https://jeffplaysbass.github.io/squish-and-spice/
 
 - **Delilah's Fraction Fiesta:** add, subtract, multiply, and divide simple fractions or mixed numbers. Practice one operation or a balanced mix of all four. Each round includes regular equations and missing-number puzzles such as 1/2 + ? = 3/4.
-- **Esther's Times Table Pop:** choose one table from 1s through 10s. Every deck includes multipliers 1 through 10 in a shuffled order.
+- **Esther's Times Table Pop:** choose one table from 1s through 10s, or **All tables** for a random mix. Single-table rounds cover multipliers 1 through 10. All-tables rounds include one question from every table in random order, using factors 1–10 and avoiding repeated facts (including reversed factors). Mixed rounds have their own saved best score and support both answer styles and all timer options.
 - **Esther's Snack Shop:** count US pennies, nickels, dimes, quarters, and $1, $5, $10 and $20 bills, separately or together. Answer with the total dollar-and-cent value of the whole pile. Tapping a piece only marks it as counted. Choose the original **Learning tokens** or **Money drawings**: original, playful illustrations inspired by familiar American coins and bills.
 
 Every game is a single round of ten distinct questions, with untimed practice, a 60-second limit, or a 2-minute limit. Timed games move straight to the next question after a correct answer and end after question ten or when time runs out. Worked steps remain available when the player explicitly chooses "Show me how". Choose large touch answer buttons or enter your own answers. Fractions accept equivalent and improper fractions. Hints include fraction bars, dot groups, or a money counter; worked solutions let players learn and move on.
@@ -40,6 +40,6 @@ Run:
 node tests/checks.cjs
 ```
 
-No dependencies are needed. The checks cover arithmetic, inverse operations, distinct questions (including equivalent fractions and swapped operands), unique answer choices, all multiplication facts, money totals, typed answer validation, timers and pauses, automatic progression, ten-question completion, perfect-round reward eligibility, legacy progress migration, duplicate scoring prevention, money appearance selection and persistence, switching appearance mid-round without losing state, packaged artwork, and interface event flows using a lightweight DOM stub.
+No dependencies are needed. The checks cover arithmetic, inverse operations, distinct questions (including equivalent fractions and swapped operands), unique answer choices, all multiplication facts, mixed-table coverage and distinct facts, separate mixed-table records, money totals, typed answer validation, timers and pauses, automatic progression, ten-question completion, perfect-round reward eligibility, legacy progress migration, duplicate scoring prevention, money appearance selection and persistence, switching appearance mid-round without losing state, packaged artwork, and interface event flows using a lightweight DOM stub.
 
 These are logic and interface smoke checks, not a real-browser visual test. The owner is handling play-testing on the family's devices.

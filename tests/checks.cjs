@@ -326,4 +326,86 @@ fresh=freshMoneyUI({getItem(){throw Error("storage blocked")},setItem(){throw Er
 fresh.click("mode",{mode:"money"});fresh.click("money-style",{style:"drawings"});fresh.click("start");
 check(fresh.html().includes('class="money-art"'),"drawings remain usable when browser storage is blocked");
 
+// All tables: every round spans 1–10 and avoids repeated or reversed facts.
+const mixedOrders=new Set(),mixedFacts=new Set();
+for(let trial=0;trial<60;trial++){
+ const deck=M.makeRound("times",{table:"mix"});
+ check(deck.length===10,"mixed tables keep ten questions");
+ check(new Set(deck.map(q=>q.a)).size===10,"every table appears exactly once in a mixed round");
+ check(new Set(deck.map(q=>[q.a,q.b].sort((a,b)=>a-b).join("x"))).size===10,"no repeated mixed fact, including reversed factors");
+ mixedOrders.add(deck.map(q=>q.a).join(","));
+ for(const q of deck){
+  mixedFacts.add(q.a+"x"+q.b);
+  check(Number.isInteger(q.a)&&Number.isInteger(q.b)&&q.a>=1&&q.a<=10&&q.b>=1&&q.b<=10,"mixed factors stay within 1–10");
+  check(q.answer.n===q.a*q.b&&q.answer.d===1,"mixed multiplication answer");
+  check(q.hint.includes("groups of "+q.a)&&q.steps.at(-1)===q.a+" × "+q.b+" = "+q.answer.n+".","hints and work match the selected fact");
+  choices(q);
+ }
+}
+check(mixedOrders.size>1&&mixedFacts.size>10,"mixed rounds vary their order and multiplier combinations");
+const randomBefore=seededMath.random;
+for(const randomValue of [0,0.999999]){
+ seededMath.random=()=>randomValue;
+ const deck=M.makeRound("times",{table:"mix"});
+ check(deck.length===10&&new Set(deck.map(M.questionKey)).size===10,"constant randomness cannot repeat a mixed fact or hang");
+ // A preceding single-table deck excludes all facts for one table: fallback is bounded.
+ const previous=M.makeRound("times",{table:7}).map(M.questionKey);
+ const next=M.makeRound("times",{table:"mix"},previous);
+ check(next.length===10&&new Set(next.map(M.questionKey)).size===10,"mixed round handles a fully excluded table");
+ check(next.filter(q=>previous.includes(M.questionKey(q))).length===1,"only the exhausted table may reuse a previous fact");
+}
+seededMath.random=randomBefore;
+
+// Repeated multipliers in a mixed round still count as ten different solved facts.
+for(const duration of [0,60,120]){
+ const game=M.startRound("times",{...c,table:"mix",duration},1000),profile=M.emptyProgress();
+ profile.tables[2]=7;profile.tables[7]=4;
+ game.questions=Array.from({length:10},(_,i)=>M.timesQuestion(i+1,2));
+ for(let i=0;i<10;i++){
+  check(M.answerRound(game,game.questions[i].answer,null,1100+i)==="correct","mixed fact is scored");
+  check(M.nextRound(game,1200+i)===(i===9?"complete":"next"),"mixed round finishes after ten");
+ }
+ const result=M.finishRound(game,profile);
+ check(result.earned===1&&result.firstTry===10&&profile.squishies.Esther===1,"perfect mixed round earns one squishy");
+ check(profile.tables.mix===10&&game.seenFacts.length===10,"mixed best counts unique facts even with repeated multipliers");
+ check(profile.tables[2]===7&&profile.tables[7]===4,"mixed practice preserves individual table records");
+ const restored=M.sanitizeProgress(JSON.parse(JSON.stringify(profile)));
+ check(restored.tables.mix===10&&restored.tables[2]===7,"mixed and individual records survive reload");
+ if(duration)check(profile.best[M.bestKey("times",{...c,table:"mix",duration})]===10,"mixed timed best is saved");
+}
+check(M.bestKey("times",{...c,table:"mix",duration:60})!==M.bestKey("times",{...c,table:1,duration:60}),"mixed timed records are separate from individual tables");
+check(M.sanitizeProgress({tables:{mix:500}}).tables.mix===10&&M.sanitizeProgress({tables:{mix:-2}}).tables.mix===0,"saved mixed score is sanitized");
+check(M.sanitizeProgress({tables:{1:8}}).tables.mix===0,"existing saves gain an empty mixed record");
+
+// Exercise the actual setup control and complete rounds with both input styles and all timers.
+for(const input of ["choices","type"])for(const duration of [0,60,120]){
+ click("home");click("mode",{mode:"times"});
+ check(node.innerHTML.includes('data-key="table" data-value="mix"'),"all-tables option is available in setup");
+ click("config",{key:"table",value:"mix"});
+ check(node.innerHTML.includes('data-value="mix" aria-pressed="true"'),"all-tables selection has an accessible pressed state");
+ click("config",{key:"duration",value:String(duration)});click("config",{key:"input",value:input});click("start");
+ check(captured.config.table==="mix"&&new Set(captured.questions.map(q=>q.a)).size===10,"setup starts the mixed generator");
+ click("hint");
+ check(node.innerHTML.includes("groups of "+captured.questions[0].a),"mixed round renders its current fact's hint");
+ for(let i=0;i<10;i++){
+  testNow+=250;
+  const q=captured.questions[captured.index];
+  if(input==="choices")click("answer",{index:String(q.options.findIndex(a=>M.equal(a,q.answer))),question:String(i)});
+  else{
+   listeners.input({target:{dataset:{draft:"answer"},value:String(q.answer.n)}});
+   listeners.submit({target:{id:"answer-form"},preventDefault(){}});
+  }
+  if(duration&&i<9)check(captured.index===i+1&&!captured.done,"timed mixed answers automatically advance");
+  if(!duration){
+   check(captured.done&&node.innerHTML.includes("Here’s the math magic"),"untimed mixed answers show worked steps");
+   click("next");
+  }
+ }
+ check(captured.finished&&captured.solved===10&&node.innerHTML.includes("NEW SQUISHY UNLOCKED!"),"mixed UI round awards a squishy for ten first tries");
+ click("setup");
+ check(node.innerHTML.includes("Random mix of 1s–10s · 10/10 best"),"mixed best is shown on its setup button");
+}
+click("config",{key:"table",value:"3"});click("start");
+check(captured.config.table===3&&captured.questions.every(q=>q.a===3),"switching from mixed back to a single table works");
+
 console.log("PASS: "+checks+" math, answer, state, persistence, timer and interface smoke checks. Browser play-testing is separate.");

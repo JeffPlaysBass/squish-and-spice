@@ -92,9 +92,10 @@ function fractionQuestion(level,op,blank="result",template=null){
  }
  return {kind:"fractions",a,b,op,result,blank,answer,signature:fractionSignature(a,b,op),hint,steps,options:options(answer,[rational(answer.n+1,answer.d),rational(answer.n+answer.d,answer.d),rational(Math.abs(answer.n-1),answer.d),rational(a.n+b.n,a.d+b.d)])};
 }
+function timesSignature(a,b){return "times|"+Math.min(a,b)+"|"+Math.max(a,b)}
 function timesQuestion(table,multiplier){
  const answer=rational(table*multiplier);
- return {kind:"times",a:table,b:multiplier,signature:"times|"+table+"|"+multiplier,answer,hint:"Think of "+multiplier+" groups of "+table+". Each row below is one group. Count by "+table+"s to find the total.",steps:[multiplier+" groups of "+table+" means "+Array(multiplier).fill(table).join(" + ")+".","Skip-count: "+Array.from({length:multiplier},(_,i)=>table*(i+1)).join(", ")+".",table+" × "+multiplier+" = "+answer.n+"."],options:options(answer,[rational(answer.n+table),rational(Math.max(0,answer.n-table)),rational(answer.n+1),rational(Math.max(0,answer.n-1))])};
+ return {kind:"times",a:table,b:multiplier,signature:timesSignature(table,multiplier),answer,hint:"Think of "+multiplier+" groups of "+table+". Each row below is one group. Count by "+table+"s to find the total.",steps:[multiplier+" groups of "+table+" means "+Array(multiplier).fill(table).join(" + ")+".","Skip-count: "+Array.from({length:multiplier},(_,i)=>table*(i+1)).join(", ")+".",table+" × "+multiplier+" = "+answer.n+"."],options:options(answer,[rational(answer.n+table),rational(Math.max(0,answer.n-table)),rational(answer.n+1),rational(Math.max(0,answer.n-1))])};
 }
 function moneyTemplates(level){
  if(moneyBanks.has(level))return moneyBanks.get(level);
@@ -122,6 +123,11 @@ function questionKey(q){return q.signature}
 function makeRound(mode,c,previous=[]){
  const prior=new Set(previous),current=new Set;
  if(mode==="times"){
+  if(c.table==="mix"){
+   const numbers=Array.from({length:10},(_,i)=>i+1);
+   // One question from every table; reversed factors count as the same fact.
+   return shuffle(numbers).map(table=>timesQuestion(table,take(numbers,n=>timesSignature(table,n))));
+  }
   const deck=shuffle(Array.from({length:10},(_,i)=>i+1)).map(n=>timesQuestion(c.table,n));
   if(previous.length&&questionKey(deck[0])===previous[previous.length-1])[deck[0],deck[9]]=[deck[9],deck[0]];
   return deck;
@@ -168,7 +174,7 @@ function answerRound(g,answer,choiceId=null,now=Date.now()){
  const q=g.questions[g.index];
  if(equal(q.answer,answer)){
   g.done=true;g.solved++;completeQuestion(g,g.wrong.length===0);
-  if(g.mode==="times"&&!g.seenFacts.includes(q.b))g.seenFacts.push(q.b);
+  if(g.mode==="times"){const fact=g.config.table==="mix"?q.signature:q.b;if(!g.seenFacts.includes(fact))g.seenFacts.push(fact)}
   return "correct";
  }
  g.wrong.push(choiceId===null?"typed-"+g.wrong.length:choiceId);
@@ -198,7 +204,7 @@ function sanitizeProgress(input){
  const num=n=>Number.isFinite(Number(n))?Math.min(1000000,Math.max(0,Math.floor(Number(n)))):0;
  for(const name of ["Delilah","Esther"]){p.stars[name]=num(s.stars?.[name]);p.rounds[name]=num(s.rounds?.[name]);p.squishies[name]=num(s.squishies?.[name]??s.rounds?.[name])}
  for(const k of Object.keys(s.best||{}))if(/^(fractions|money|times)\|[^|]{1,24}\|(60|120)\|(choices|type)(\|round10)?$/.test(k))p.best[k]=num(s.best[k]);
- for(let n=1;n<=10;n++)p.tables[n]=Math.min(10,num(s.tables?.[n]));
+ for(const table of [1,2,3,4,5,6,7,8,9,10,"mix"])p.tables[table]=Math.min(10,num(s.tables?.[table]));
  return p;
 }
 function finishRound(g,progress){
